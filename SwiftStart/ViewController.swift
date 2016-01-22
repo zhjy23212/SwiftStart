@@ -9,6 +9,9 @@
 import UIKit
 import CoreLocation
 
+import SwiftyJSON
+
+
 class ViewController: UIViewController , CLLocationManagerDelegate{
     let locationmanager:CLLocationManager=CLLocationManager()
     
@@ -60,8 +63,32 @@ class ViewController: UIViewController , CLLocationManagerDelegate{
         
         let request:NSURLRequest = NSURLRequest(URL: url)
         
-        let task = session.dataTaskWithRequest(request, completionHandler: <#T##(NSData?, NSURLResponse?, NSError?) -> Void#>)
+        let task = session.dataTaskWithRequest(request) { (data, respond, netWorkError) -> Void in
+            if netWorkError != nil {
+                print("An error occured in request ")
+                return
+            }
             
+            guard let unwrappedData = data else {
+                print("Error: \(netWorkError!.domain)")
+                return
+            }
+            
+            var json = JSON(data:unwrappedData)
+            print(json)
+            
+            guard let tempDegrees = json["list"][0]["main"]["temp"].double,
+                country = json["city"]["country"].string,
+                city = json["city"]["name"].string,
+                weatherCondition = json["list"][0]["weather"][0]["id"].int,
+                iconString = json["list"][0]["weather"][0]["icon"].string else {
+                    print("Error: \(netWorkError!.domain)")
+                    return
+            }
+            
+        }
+        
+            task.resume()
         
         
     }
@@ -74,6 +101,8 @@ class ViewController: UIViewController , CLLocationManagerDelegate{
             print("Longtitude  \(location.coordinate.longitude)")
         }
         locationmanager.stopUpdatingLocation()
+        
+        self.weatherInfoByLocation(location)
     }
     
     func locationManager(manager: CLLocationManager, didFailWithError error: NSError){
